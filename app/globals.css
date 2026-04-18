@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: #e8e8e8;
+  --foreground: #1a1a1a;
 }
 
 @theme inline {
@@ -13,36 +13,52 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+/* Neumorphic shadows */
+.neu-flat {
+  background: #e8e8e8;
+  box-shadow:
+    6px 6px 12px #c5c5c5,
+    -6px -6px 12px #ffffff;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+.neu-pressed {
+  background: #e8e8e8;
+  box-shadow:
+    inset 4px 4px 8px #c5c5c5,
+    inset -4px -4px 8px #ffffff;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
+.neu-convex {
+  background: linear-gradient(145deg, #fafafa, #d4d4d4);
+  box-shadow:
+    6px 6px 12px #c5c5c5,
+    -6px -6px 12px #ffffff;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+.neu-button {
+  background: linear-gradient(145deg, #fafafa, #d4d4d4);
+  box-shadow:
+    4px 4px 8px #c5c5c5,
+    -4px -4px 8px #ffffff;
+  transition: all 0.15s ease;
 }
 
-/* Firefox scrollbar */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+.neu-button:active {
+  box-shadow:
+    inset 2px 2px 4px #c5c5c5,
+    inset -2px -2px 4px #ffffff;
 }
 
-/* Hide default scrollbar on body */
+.neu-button:hover {
+  background: linear-gradient(145deg, #ffffff, #e0e0e0);
+}
+
+/* Hide scrollbar */
 body::-webkit-scrollbar {
   display: none;
 }
@@ -51,36 +67,8 @@ body {
   scrollbar-width: none;
 }
 
-/* Color input styling */
-input[type="color"] {
-  -webkit-appearance: none;
-  border: none;
-  padding: 0;
-}
-
-input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-input[type="color"]::-webkit-color-swatch {
-  border: 2px solid #374151;
-  border-radius: 4px;
-}
-
-/* Range input track styling */
-input[type="range"] {
-  -webkit-appearance: none;
-  background: transparent;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px;
-  background: #1f2937;
-  border-radius: 3px;
-}
-
-input[type="range"]::-moz-range-track {
-  height: 6px;
-  background: #1f2937;
-  border-radius: 3px;
+/* Monospace font for time display */
+.font-mono-display {
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
 }
