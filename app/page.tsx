@@ -232,13 +232,13 @@ export default function Home() {
             </div>
 
             {/* Time Display */}
-            <div className="font-mono-display text-4xl tracking-tight">
+            <div className="font-mono-display text-4xl tracking-tight flex items-baseline gap-1">
               <span>{time.h.toString().padStart(2, '0')}</span>
-              <span className="text-lg text-gray-500">H </span>
-              <span>{time.m.toString().padStart(2, '0')}</span>
-              <span className="text-lg text-gray-500">M </span>
-              <span>{time.s.toString().padStart(2, '0')}</span>
-              <span className="text-lg text-gray-500">S</span>
+              <span className="text-base text-gray-500">H</span>
+              <span className="ml-2">{time.m.toString().padStart(2, '0')}</span>
+              <span className="text-base text-gray-500">M</span>
+              <span className="ml-2">{time.s.toString().padStart(2, '0')}</span>
+              <span className="text-base text-gray-500">S</span>
             </div>
           </div>
 
