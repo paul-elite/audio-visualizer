@@ -1,7 +1,24 @@
 'use client';
 
 import { create } from 'zustand';
-import { AudioData, VisualSettings, PlaybackState, VisualizerMode, Preset } from '@/types';
+import { AudioData } from '@/types';
+
+interface AudioSettings {
+  speed: number;
+  pitch: number;
+  bass: number;
+  treble: number;
+  reverb: boolean;
+  echo: boolean;
+  vocalsOnly: boolean;
+}
+
+interface PlaybackState {
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  volume: number;
+}
 
 interface VisualizerStore {
   // Audio file
@@ -17,34 +34,20 @@ interface VisualizerStore {
   audioData: AudioData;
   setAudioData: (data: AudioData) => void;
 
-  // Visual settings
-  settings: VisualSettings;
-  updateSettings: (settings: Partial<VisualSettings>) => void;
-  setMode: (mode: VisualizerMode) => void;
-
-  // Presets
-  presets: Preset[];
-  activePreset: string | null;
-  applyPreset: (name: string) => void;
-
-  // Reset
-  reset: () => void;
+  // Audio settings
+  settings: AudioSettings;
+  updateSettings: (settings: Partial<AudioSettings>) => void;
+  resetSettings: () => void;
 }
 
-const defaultSettings: VisualSettings = {
-  mode: 'bars',
-  primaryColor: '#00ffff',
-  secondaryColor: '#ff00ff',
-  backgroundColor: '#0a0a0a',
-  glowIntensity: 0.5,
-  lineThickness: 2,
-  particleCount: 100,
-  sensitivity: 1.0,
+const defaultSettings: AudioSettings = {
   speed: 1.0,
-  smoothing: 0.8,
-  bassToScale: true,
-  midsToRotation: false,
-  highsToColor: true,
+  pitch: 0,
+  bass: 0,
+  treble: 0,
+  reverb: false,
+  echo: false,
+  vocalsOnly: false,
 };
 
 const defaultAudioData: AudioData = {
@@ -62,60 +65,6 @@ const defaultPlayback: PlaybackState = {
   duration: 0,
   volume: 1,
 };
-
-const presets: Preset[] = [
-  {
-    name: 'Club',
-    settings: {
-      mode: 'bars',
-      primaryColor: '#ff0080',
-      secondaryColor: '#00ff80',
-      backgroundColor: '#0a0a0a',
-      glowIntensity: 0.8,
-      sensitivity: 1.5,
-      speed: 1.2,
-    },
-  },
-  {
-    name: 'Chill',
-    settings: {
-      mode: 'waveform',
-      primaryColor: '#4a9eff',
-      secondaryColor: '#a855f7',
-      backgroundColor: '#0f172a',
-      glowIntensity: 0.3,
-      sensitivity: 0.6,
-      speed: 0.7,
-      smoothing: 0.9,
-    },
-  },
-  {
-    name: 'Minimal',
-    settings: {
-      mode: 'waveform',
-      primaryColor: '#ffffff',
-      secondaryColor: '#666666',
-      backgroundColor: '#000000',
-      glowIntensity: 0,
-      lineThickness: 1,
-      sensitivity: 0.8,
-    },
-  },
-  {
-    name: 'Neon Pulse',
-    settings: {
-      mode: 'circular',
-      primaryColor: '#00ffff',
-      secondaryColor: '#ff00ff',
-      backgroundColor: '#0a0a0a',
-      glowIntensity: 1.0,
-      sensitivity: 1.2,
-      bassToScale: true,
-      midsToRotation: true,
-      highsToColor: true,
-    },
-  },
-];
 
 export const useVisualizerStore = create<VisualizerStore>((set, get) => ({
   // Audio file
@@ -139,34 +88,9 @@ export const useVisualizerStore = create<VisualizerStore>((set, get) => ({
   audioData: defaultAudioData,
   setAudioData: (data) => set({ audioData: data }),
 
-  // Visual settings
+  // Audio settings
   settings: defaultSettings,
   updateSettings: (newSettings) =>
     set((s) => ({ settings: { ...s.settings, ...newSettings } })),
-  setMode: (mode) =>
-    set((s) => ({ settings: { ...s.settings, mode } })),
-
-  // Presets
-  presets,
-  activePreset: null,
-  applyPreset: (name) => {
-    const preset = presets.find((p) => p.name === name);
-    if (preset) {
-      set((s) => ({
-        settings: { ...s.settings, ...preset.settings },
-        activePreset: name,
-      }));
-    }
-  },
-
-  // Reset
-  reset: () =>
-    set({
-      audioFile: null,
-      audioUrl: null,
-      playback: defaultPlayback,
-      audioData: defaultAudioData,
-      settings: defaultSettings,
-      activePreset: null,
-    }),
+  resetSettings: () => set({ settings: defaultSettings }),
 }));

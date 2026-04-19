@@ -11,39 +11,113 @@ export function useAudioAnalyzer() {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
+  // Effect nodes
+  const bassFilterRef = useRef<BiquadFilterNode | null>(null);
+  const trebleFilterRef = useRef<BiquadFilterNode | null>(null);
+  const delayNodeRef = useRef<DelayNode | null>(null);
+  const delayGainRef = useRef<GainNode | null>(null);
+  const convolverRef = useRef<ConvolverNode | null>(null);
+  const dryGainRef = useRef<GainNode | null>(null);
+  const wetGainRef = useRef<GainNode | null>(null);
+
   const { setAudioData, settings, setPlayback, playback } = useVisualizerStore();
 
+  const createImpulseResponse = (context: AudioContext, duration: number, decay: number) => {
+    const sampleRate = context.sampleRate;
+    const length = sampleRate * duration;
+    const impulse = context.createBuffer(2, length, sampleRate);
+
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+      }
+    }
+
+    return impulse;
+  };
+
   const initializeAudio = useCallback((audioElement: HTMLAudioElement) => {
-    // Don't recreate if already connected to this element
     if (audioElementRef.current === audioElement && audioContextRef.current) {
       return;
     }
 
-    // Clean up existing
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
 
     audioElementRef.current = audioElement;
 
-    // Create audio context
     const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     audioContextRef.current = audioContext;
 
     // Create analyzer
     const analyzer = audioContext.createAnalyser();
     analyzer.fftSize = 256;
-    analyzer.smoothingTimeConstant = settings.smoothing;
+    analyzer.smoothingTimeConstant = 0.8;
     analyzerRef.current = analyzer;
 
-    // Create source from audio element
+    // Create source
     const source = audioContext.createMediaElementSource(audioElement);
     sourceRef.current = source;
 
-    // Connect: source -> analyzer -> destination
-    source.connect(analyzer);
-    analyzer.connect(audioContext.destination);
-  }, [settings.smoothing]);
+    // Create bass filter (low shelf)
+    const bassFilter = audioContext.createBiquadFilter();
+    bassFilter.type = 'lowshelf';
+    bassFilter.frequency.value = 200;
+    bassFilter.gain.value = 0;
+    bassFilterRef.current = bassFilter;
+
+    // Create treble filter (high shelf)
+    const trebleFilter = audioContext.createBiquadFilter();
+    trebleFilter.type = 'highshelf';
+    trebleFilter.frequency.value = 3000;
+    trebleFilter.gain.value = 0;
+    trebleFilterRef.current = trebleFilter;
+
+    // Create delay (echo)
+    const delayNode = audioContext.createDelay(1.0);
+    delayNode.delayTime.value = 0.3;
+    delayNodeRef.current = delayNode;
+
+    const delayGain = audioContext.createGain();
+    delayGain.gain.value = 0;
+    delayGainRef.current = delayGain;
+
+    // Create convolver (reverb)
+    const convolver = audioContext.createConvolver();
+    convolver.buffer = createImpulseResponse(audioContext, 2, 2);
+    convolverRef.current = convolver;
+
+    const dryGain = audioContext.createGain();
+    dryGain.gain.value = 1;
+    dryGainRef.current = dryGain;
+
+    const wetGain = audioContext.createGain();
+    wetGain.gain.value = 0;
+    wetGainRef.current = wetGain;
+
+    // Connect nodes: source -> bass -> treble -> analyzer -> dry/wet -> destination
+    source.connect(bassFilter);
+    bassFilter.connect(trebleFilter);
+    trebleFilter.connect(analyzer);
+
+    // Dry path
+    analyzer.connect(dryGain);
+    dryGain.connect(audioContext.destination);
+
+    // Wet path (reverb)
+    analyzer.connect(convolver);
+    convolver.connect(wetGain);
+    wetGain.connect(audioContext.destination);
+
+    // Echo path
+    analyzer.connect(delayNode);
+    delayNode.connect(delayGain);
+    delayGain.connect(audioContext.destination);
+    delayGain.connect(delayNode); // Feedback loop
+
+  }, []);
 
   const analyze = useCallback(() => {
     const analyzer = analyzerRef.current;
@@ -56,7 +130,6 @@ export function useAudioAnalyzer() {
     analyzer.getByteFrequencyData(frequencyData);
     analyzer.getByteTimeDomainData(timeDomainData);
 
-    // Calculate frequency bands
     const bassEnd = Math.floor(bufferLength * 0.1);
     const midsEnd = Math.floor(bufferLength * 0.5);
 
@@ -93,8 +166,6 @@ export function useAudioAnalyzer() {
     };
 
     setAudioData(audioData);
-
-    // Continue animation loop
     animationFrameRef.current = requestAnimationFrame(analyze);
   }, [setAudioData]);
 
@@ -150,20 +221,38 @@ export function useAudioAnalyzer() {
     setPlayback({ currentTime: time });
   }, [setPlayback]);
 
-  const setVolume = useCallback((volume: number) => {
-    const audio = audioElementRef.current;
-    if (!audio) return;
-
-    audio.volume = volume;
-    setPlayback({ volume });
-  }, [setPlayback]);
-
-  // Update smoothing when settings change
+  // Update audio settings when they change
   useEffect(() => {
-    if (analyzerRef.current) {
-      analyzerRef.current.smoothingTimeConstant = settings.smoothing;
+    const audio = audioElementRef.current;
+    if (audio) {
+      audio.playbackRate = settings.speed;
     }
-  }, [settings.smoothing]);
+  }, [settings.speed]);
+
+  useEffect(() => {
+    if (bassFilterRef.current) {
+      bassFilterRef.current.gain.value = settings.bass * 15; // -15 to +15 dB
+    }
+  }, [settings.bass]);
+
+  useEffect(() => {
+    if (trebleFilterRef.current) {
+      trebleFilterRef.current.gain.value = settings.treble * 15;
+    }
+  }, [settings.treble]);
+
+  useEffect(() => {
+    if (delayGainRef.current) {
+      delayGainRef.current.gain.value = settings.echo ? 0.4 : 0;
+    }
+  }, [settings.echo]);
+
+  useEffect(() => {
+    if (wetGainRef.current && dryGainRef.current) {
+      wetGainRef.current.gain.value = settings.reverb ? 0.5 : 0;
+      dryGainRef.current.gain.value = settings.reverb ? 0.7 : 1;
+    }
+  }, [settings.reverb]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -181,7 +270,6 @@ export function useAudioAnalyzer() {
     pause,
     togglePlayback,
     seek,
-    setVolume,
     startAnalysis,
     stopAnalysis,
   };

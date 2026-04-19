@@ -8,9 +8,8 @@ export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const animationRef = useRef<number | null>(null);
 
-  const { audioFile, audioUrl, setAudioFile, playback, setPlayback, audioData } = useVisualizerStore();
+  const { audioFile, audioUrl, setAudioFile, playback, setPlayback, audioData, settings, updateSettings } = useVisualizerStore();
   const { initializeAudio, togglePlayback, seek } = useAudioAnalyzer();
 
   const [waveformData, setWaveformData] = useState<number[]>([]);
@@ -99,23 +98,15 @@ export default function Home() {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Draw waveform bars
     waveformData.forEach((value, index) => {
       const x = index * barWidth;
       const barHeight = value * height * 0.8;
       const y = (height - barHeight) / 2;
 
-      // Color based on playback progress
-      if (x < progressX) {
-        ctx.fillStyle = '#1a1a1a';
-      } else {
-        ctx.fillStyle = '#a0a0a0';
-      }
-
+      ctx.fillStyle = x < progressX ? '#1a1a1a' : '#a0a0a0';
       ctx.fillRect(x, y, barWidth - 1, barHeight);
     });
 
-    // Draw playhead
     ctx.fillStyle = '#dc2626';
     ctx.fillRect(progressX - 1, 0, 2, height);
   }, [waveformData, playback.currentTime, playback.duration]);
@@ -182,7 +173,7 @@ export default function Home() {
       {/* Main Container */}
       <div className="w-full max-w-4xl neu-flat rounded-3xl p-8">
         {/* Waveform Section */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div
             className="neu-pressed rounded-xl p-4 cursor-pointer"
             onClick={() => !audioFile && fileInputRef.current?.click()}
@@ -190,11 +181,11 @@ export default function Home() {
             {audioFile ? (
               <canvas
                 ref={canvasRef}
-                className="w-full h-24 cursor-pointer"
+                className="w-full h-20 cursor-pointer"
                 onClick={handleWaveformClick}
               />
             ) : (
-              <div className="h-24 flex items-center justify-center">
+              <div className="h-20 flex items-center justify-center">
                 <p className="text-gray-400">Click to upload audio file</p>
               </div>
             )}
@@ -208,53 +199,49 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Controls Section */}
-        <div className="flex gap-6">
+        {/* Info & Controls Row */}
+        <div className="flex gap-6 mb-6">
           {/* Info Panel */}
-          <div className="flex-1 bg-[#1a1a1a] rounded-2xl p-5 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                {playback.isPlaying && (
-                  <span className="flex items-center gap-1 text-xs">
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                    REC
-                  </span>
-                )}
-                <span className="px-2 py-0.5 bg-gray-700 rounded text-xs">HD</span>
-              </div>
-              <span className="text-xs text-gray-400">
-                {audioFile ? '1/1' : '0/0'}
-              </span>
+          <div className="w-48 bg-[#1a1a1a] rounded-2xl p-4 text-white">
+            <div className="flex items-center gap-2 mb-3">
+              {playback.isPlaying && (
+                <span className="flex items-center gap-1 text-xs">
+                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  PLAY
+                </span>
+              )}
+              <span className="px-2 py-0.5 bg-gray-700 rounded text-xs">HD</span>
             </div>
 
-            <div className="text-xs text-gray-400 mb-3">
-              48.00 kHz • 16 bit
+            <div className="text-xs text-gray-400 mb-2">
+              {settings.speed.toFixed(1)}x speed
             </div>
 
             {/* Time Display */}
-            <div className="font-mono-display text-4xl tracking-tight flex items-baseline gap-1">
+            <div className="font-mono-display text-2xl tracking-tight flex items-baseline gap-0.5">
               <span>{time.h.toString().padStart(2, '0')}</span>
-              <span className="text-base text-gray-500">H</span>
-              <span className="ml-2">{time.m.toString().padStart(2, '0')}</span>
-              <span className="text-base text-gray-500">M</span>
-              <span className="ml-2">{time.s.toString().padStart(2, '0')}</span>
-              <span className="text-base text-gray-500">S</span>
+              <span className="text-sm text-gray-500">H</span>
+              <span className="ml-1">{time.m.toString().padStart(2, '0')}</span>
+              <span className="text-sm text-gray-500">M</span>
+              <span className="ml-1">{time.s.toString().padStart(2, '0')}</span>
+              <span className="text-sm text-gray-500">S</span>
             </div>
-          </div>
 
-          {/* File Info & Meters */}
-          <div className="flex-1 flex flex-col justify-between">
-            <div>
-              <p className="font-medium text-gray-800 truncate">
-                {audioFile?.name || 'No file loaded'}
+            {/* File info */}
+            <div className="mt-3 pt-3 border-t border-gray-700">
+              <p className="text-xs text-gray-400 truncate">
+                {audioFile?.name || 'No file'}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs text-gray-500">
                 {audioFile ? `${(audioFile.size / 1024 / 1024).toFixed(1)} MB` : '--'}
               </p>
             </div>
+          </div>
 
-            {/* Level Meters */}
-            <div className="space-y-2 mt-4">
+          {/* Level Meters & Play Control */}
+          <div className="flex-1 flex items-center gap-6">
+            {/* Meters */}
+            <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 w-4">L</span>
                 <div className="flex-1 h-3 bg-gray-300 rounded overflow-hidden">
@@ -263,9 +250,6 @@ export default function Home() {
                     style={{ width: `${audioData.amplitude * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-gray-500 w-12 text-right">
-                  {audioData.amplitude > 0 ? `${Math.round(-60 + audioData.amplitude * 60)}dB` : '-∞dB'}
-                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 w-4">R</span>
@@ -275,104 +259,157 @@ export default function Home() {
                     style={{ width: `${audioData.amplitude * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-gray-500 w-12 text-right">
-                  {audioData.amplitude > 0 ? `${Math.round(-60 + audioData.amplitude * 60)}dB` : '-∞dB'}
-                </span>
               </div>
             </div>
-          </div>
 
-          {/* Circular Control */}
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              {/* Outer ring */}
-              <div className="w-32 h-32 neu-convex rounded-full flex items-center justify-center">
-                {/* Inner play button */}
-                <button
-                  onClick={togglePlayback}
-                  disabled={!audioFile}
-                  className="w-16 h-16 neu-button rounded-full flex items-center justify-center disabled:opacity-50"
-                >
-                  {playback.isPlaying ? (
-                    <svg className="w-6 h-6 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                      <rect x="6" y="4" width="4" height="16" />
-                      <rect x="14" y="4" width="4" height="16" />
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6 text-gray-700 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <polygon points="5,3 19,12 5,21" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+            {/* Play Button */}
+            <button
+              onClick={togglePlayback}
+              disabled={!audioFile}
+              className="w-20 h-20 neu-button rounded-full flex items-center justify-center disabled:opacity-50"
+            >
+              {playback.isPlaying ? (
+                <svg className="w-8 h-8 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="6" y="4" width="4" height="16" />
+                  <rect x="14" y="4" width="4" height="16" />
+                </svg>
+              ) : (
+                <svg className="w-8 h-8 text-gray-700 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+              )}
+            </button>
 
-              {/* Direction indicators */}
-              <button className="absolute top-1 left-1/2 -translate-x-1/2 text-gray-400 hover:text-gray-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                </svg>
-              </button>
-              <button className="absolute bottom-1 left-1/2 -translate-x-1/2 text-gray-400 hover:text-gray-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={() => seek(Math.max(0, playback.currentTime - 10))}
-                className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={() => seek(Math.min(playback.duration, playback.currentTime + 10))}
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Side buttons */}
-            <div className="flex flex-col gap-4">
+            {/* Stop & Load */}
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => { seek(0); setPlayback({ isPlaying: false }); }}
-                className="w-14 h-14 neu-button rounded-xl flex flex-col items-center justify-center gap-1"
+                className="px-4 py-2 neu-button rounded-lg text-xs font-medium text-gray-600"
               >
-                <div className="w-4 h-4 bg-gray-700 rounded-sm" />
-                <span className="text-[10px] text-gray-500">STOP</span>
+                STOP
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-14 h-14 neu-button rounded-xl flex flex-col items-center justify-center gap-1"
+                className="px-4 py-2 neu-button rounded-lg text-xs font-medium text-gray-600"
               >
-                <div className="w-4 h-4 bg-red-500 rounded-full" />
-                <span className="text-[10px] text-gray-500">LOAD</span>
+                LOAD
               </button>
             </div>
           </div>
         </div>
 
-        {/* Bottom Navigation */}
-        <div className="flex items-center gap-4 mt-8">
-          <button className="w-12 h-12 neu-button rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+        {/* Effects Controls */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Speed */}
+          <div className="neu-pressed rounded-xl p-4">
+            <label className="text-xs text-gray-500 block mb-2">SPEED</label>
+            <input
+              type="range"
+              min="0.5"
+              max="2"
+              step="0.1"
+              value={settings.speed}
+              onChange={(e) => updateSettings({ speed: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-400 rounded-full appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:w-4
+                [&::-webkit-slider-thumb]:h-4
+                [&::-webkit-slider-thumb]:rounded-full
+                [&::-webkit-slider-thumb]:bg-gray-700
+                [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <span className="text-sm font-medium text-gray-700 mt-1 block">{settings.speed.toFixed(1)}x</span>
+          </div>
+
+          {/* Bass */}
+          <div className="neu-pressed rounded-xl p-4">
+            <label className="text-xs text-gray-500 block mb-2">BASS</label>
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              step="0.1"
+              value={settings.bass}
+              onChange={(e) => updateSettings({ bass: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-400 rounded-full appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:w-4
+                [&::-webkit-slider-thumb]:h-4
+                [&::-webkit-slider-thumb]:rounded-full
+                [&::-webkit-slider-thumb]:bg-gray-700
+                [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <span className="text-sm font-medium text-gray-700 mt-1 block">{settings.bass > 0 ? '+' : ''}{(settings.bass * 15).toFixed(0)} dB</span>
+          </div>
+
+          {/* Treble */}
+          <div className="neu-pressed rounded-xl p-4">
+            <label className="text-xs text-gray-500 block mb-2">TREBLE</label>
+            <input
+              type="range"
+              min="-1"
+              max="1"
+              step="0.1"
+              value={settings.treble}
+              onChange={(e) => updateSettings({ treble: parseFloat(e.target.value) })}
+              className="w-full h-2 bg-gray-400 rounded-full appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:w-4
+                [&::-webkit-slider-thumb]:h-4
+                [&::-webkit-slider-thumb]:rounded-full
+                [&::-webkit-slider-thumb]:bg-gray-700
+                [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <span className="text-sm font-medium text-gray-700 mt-1 block">{settings.treble > 0 ? '+' : ''}{(settings.treble * 15).toFixed(0)} dB</span>
+          </div>
+
+          {/* Pitch */}
+          <div className="neu-pressed rounded-xl p-4">
+            <label className="text-xs text-gray-500 block mb-2">PITCH</label>
+            <input
+              type="range"
+              min="-12"
+              max="12"
+              step="1"
+              value={settings.pitch}
+              onChange={(e) => updateSettings({ pitch: parseInt(e.target.value) })}
+              className="w-full h-2 bg-gray-400 rounded-full appearance-none cursor-pointer
+                [&::-webkit-slider-thumb]:appearance-none
+                [&::-webkit-slider-thumb]:w-4
+                [&::-webkit-slider-thumb]:h-4
+                [&::-webkit-slider-thumb]:rounded-full
+                [&::-webkit-slider-thumb]:bg-gray-700
+                [&::-webkit-slider-thumb]:shadow-md"
+            />
+            <span className="text-sm font-medium text-gray-700 mt-1 block">{settings.pitch > 0 ? '+' : ''}{settings.pitch} st</span>
+          </div>
+        </div>
+
+        {/* Effect Toggles */}
+        <div className="flex gap-3 mt-4">
+          <button
+            onClick={() => updateSettings({ reverb: !settings.reverb })}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
+              settings.reverb ? 'neu-pressed text-gray-800' : 'neu-button text-gray-600'
+            }`}
+          >
+            REVERB
           </button>
-          <button className="px-6 py-3 neu-button rounded-xl text-sm font-medium text-gray-600">
-            HOME
+          <button
+            onClick={() => updateSettings({ echo: !settings.echo })}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
+              settings.echo ? 'neu-pressed text-gray-800' : 'neu-button text-gray-600'
+            }`}
+          >
+            ECHO
           </button>
-          <button className="px-6 py-3 neu-button rounded-xl text-sm font-medium text-gray-600">
-            BACK
-          </button>
-          <button className="px-6 py-3 neu-pressed rounded-xl text-sm font-medium text-gray-800">
-            DIVIDE
-          </button>
-          <button className="px-6 py-3 neu-button rounded-xl text-sm font-medium text-gray-600">
-            OPTIONS
+          <button
+            onClick={() => updateSettings({ vocalsOnly: !settings.vocalsOnly })}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium transition-all ${
+              settings.vocalsOnly ? 'neu-pressed text-gray-800' : 'neu-button text-gray-600'
+            }`}
+          >
+            VOCALS
           </button>
         </div>
       </div>
